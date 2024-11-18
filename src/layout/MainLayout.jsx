@@ -18,10 +18,10 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import InboxIcon from '@mui/icons-material/MoveToInbox';
-import MailIcon from '@mui/icons-material/Mail';
 import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 
 const drawerWidth = 240;
 
@@ -106,6 +106,7 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 export default function MiniDrawer() {
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
+  const [openModal, setOpenModal] = React.useState(false);
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -121,7 +122,28 @@ export default function MiniDrawer() {
     navigate(path);
   };
 
+    // Handle open modal (triggered when the user clicks the logout button)
+    const handleOpenModal = () => {
+      setOpenModal(true);
+    };
+  
+    // Handle close modal without logging out
+    const handleCloseModal = () => {
+      setOpenModal(false);
+    };
+  
+    // Handle logout functionality
+    const handleLogout = () => {
+      // Remove token and user from localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('userID');
+  
+      // Redirect to the homepage or login page after logout
+      navigate('/');
+    };
+
   return (
+    <>
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
       <AppBar position="fixed" open={open}>
@@ -250,64 +272,106 @@ export default function MiniDrawer() {
                 />
                 </ListItemButton>
             </ListItem>
+            <ListItem disablePadding sx={{ display: 'block' }}>
+                <ListItemButton
+                sx={[
+                    {
+                    minHeight: 48,
+                    px: 2.5,
+                    },
+                    open
+                    ? {
+                        justifyContent: 'initial',
+                        }
+                    : {
+                        justifyContent: 'center',
+                        },
+                ]}
+                onClick={() => handleNavigation('/dashboard/monitoring')}
+                >
+                <ListItemIcon
+                    sx={[
+                    {
+                        minWidth: 0,
+                        justifyContent: 'center',
+                    },
+                    open
+                        ? {
+                            mr: 3,
+                        }
+                        : {
+                            mr: 'auto',
+                        },
+                    ]}
+                >
+                    <MonitorHeartIcon />
+                </ListItemIcon>
+                <ListItemText
+                    primary="Daily Monitoring"
+                    sx={[
+                    open
+                        ? {
+                            opacity: 1,
+                        }
+                        : {
+                            opacity: 0,
+                        },
+                    ]}
+                />
+                </ListItemButton>
+            </ListItem>
             </List>
         <Divider />
         <List>
-          {['Daily Sugar'].map((text, index) => (
-            <ListItem key={text} disablePadding sx={{ display: 'block' }}>
-              <ListItemButton
-                sx={[
-                  {
-                    minHeight: 48,
-                    px: 2.5,
-                  },
-                  open
-                    ? {
-                        justifyContent: 'initial',
-                      }
-                    : {
-                        justifyContent: 'center',
-                      },
-                ]}
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              sx={{
+                minHeight: 48,
+                px: 2.5,
+                justifyContent: open ? 'initial' : 'center',
+              }}
+              onClick={handleOpenModal}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  justifyContent: 'center',
+                  mr: open ? 3 : 'auto',  // Align icon based on open state
+                }}
               >
-                <ListItemIcon
-                  sx={[
-                    {
-                      minWidth: 0,
-                      justifyContent: 'center',
-                    },
-                    open
-                      ? {
-                          mr: 3,
-                        }
-                      : {
-                          mr: 'auto',
-                        },
-                  ]}
-                >
-                  {index % 2 === 0 ? <MonitorHeartIcon /> : <MailIcon />}
-                </ListItemIcon>
-                <ListItemText
-                  primary={text}
-                  sx={[
-                    open
-                      ? {
-                          opacity: 1,
-                        }
-                      : {
-                          opacity: 0,
-                        },
-                  ]}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
+                <LogoutIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary="Logout"
+                sx={{
+                  opacity: open ? 1 : 0,
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
         </List>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <DrawerHeader />
         <Outlet />
+
+         {/* Confirmation Modal */}
       </Box>
     </Box>
+    <Dialog open={openModal} onClose={handleCloseModal}>
+    <DialogTitle>Are you sure you want to log out?</DialogTitle>
+    <DialogContent>
+      <p>If you log out, you will need to log in again to access your account.</p>
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={handleCloseModal} variant="contained" color="error">
+        Cancel
+      </Button>
+      <Button onClick={handleLogout} variant="contained" color="success">
+        Log Out
+      </Button>
+    </DialogActions>
+  </Dialog>
+</>
   );
 }

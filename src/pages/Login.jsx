@@ -7,14 +7,22 @@ import {
   Container,
   Grid,
   Snackbar,
-  Alert, // MUI Alert component for Snackbar messages
+  Alert, 
 } from "@mui/material";
 import { useForm } from "react-hook-form";
 import API from "../services/HTTPRequest";
 import { Navigate, useNavigate } from "react-router-dom";
+import { loginSchema } from "../validations/validation";
+import { yupResolver } from "@hookform/resolvers/yup";
 
 const LoginForm = () => {
-  const { register, handleSubmit } = useForm();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(loginSchema),
+  })
   const [snackbar, setSnackbar] = React.useState({
     open: false,
     message: "",
@@ -82,6 +90,8 @@ const LoginForm = () => {
                 label="Username"
                 type="text"
                 {...register("username", { required: true })}
+                error={!!errors.username}
+                helperText={errors.username?.message}
               />
             </Grid>
             <Grid item xs={12}>
@@ -90,6 +100,8 @@ const LoginForm = () => {
                 label="Password"
                 type="password"
                 {...register("password", { required: true })}
+                error={!!errors.password}
+                helperText={errors.password?.message}
               />
             </Grid>
             <Grid item xs={12}>

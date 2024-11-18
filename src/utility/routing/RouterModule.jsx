@@ -6,6 +6,7 @@ import Login from "../../pages/Login"
 import Mainlayout from "../../layout/MainLayout"
 import Dashboard from "../../pages/Dashboard"
 import Users from "../../pages/Users";
+import DailyMonitoring from "../../pages/DailyMonitoring";
 const router = createBrowserRouter([
     {
       element: <PreventLoginRoutes />,
@@ -31,6 +32,11 @@ const router = createBrowserRouter([
               path: "users",
               index: true,
               element: <Users/>,
+            },
+            {
+              path: "monitoring",
+              index: true,
+              element: <DailyMonitoring/>,
             },
           ],
         },
