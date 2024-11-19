@@ -21,4 +21,10 @@ export const userSchema = yup.object().shape({
     username: yup.string().required('Username is required'),
 });
 
-export default { loginSchema, userSchema };
+export const sugarMonitoring = yup.object().shape({
+  mgdl: yup.number().integer().required('mgdl is required'), // Corrected to yup.number().integer()
+  description: yup.string().nullable(), // Optional
+});
+
+
+export default { loginSchema, userSchema, sugarMonitoring };
