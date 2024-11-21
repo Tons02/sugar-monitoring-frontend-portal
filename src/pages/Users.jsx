@@ -5,7 +5,7 @@ import Link from '@mui/material/Link';
 import Paper from '@mui/material/Paper';
 import { DataGrid } from '@mui/x-data-grid';
 import API from "../services/HTTPRequest";
-import { Box, Button, IconButton, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Alert } from '@mui/material';
+import { Box, Button, IconButton, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Alert, InputLabel, Select, MenuItem, FormHelperText, FormControl } from '@mui/material';
 import { Delete, Edit } from '@mui/icons-material';
 import { userSchema } from "../validations/validation";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -156,14 +156,15 @@ const Users = () => {
   };
 
   const columns = [
-    { field: 'id', headerName: 'ID', flex: 1 },
-    { field: 'first_name', headerName: 'First Name', flex: 2 },
-    { field: 'middle_name', headerName: 'Middle Name', flex: 2 },
-    { field: 'last_name', headerName: 'Last Name', flex: 2 },
+    { field: 'id', headerName: 'ID', flex: .5 },
+    { field: 'first_name', headerName: 'First Name', flex: 1 },
+    { field: 'middle_name', headerName: 'Middle Name', flex: 1 },
+    { field: 'last_name', headerName: 'Last Name', flex: 1 },
     { field: 'gender', headerName: 'Gender', flex: 1 },
-    { field: 'mobile_number', headerName: 'Mobile Number', flex: 1 },
+    { field: 'mobile_number', headerName: 'Mobile Number', flex: 2 },
     { field: 'email', headerName: 'Email', flex: 2 },
     { field: 'username', headerName: 'Username', flex: 1 },
+    { field: 'userType', headerName: 'User Type', flex: 1 },
     {
       field: 'actions',
       headerName: 'Actions',
@@ -228,11 +229,35 @@ const Users = () => {
             <TextField {...register('first_name')} label="First Name" fullWidth margin="dense" error={!!errors.first_name} helperText={errors.first_name?.message} />
             <TextField {...register('middle_name')} label="Middle Name" fullWidth margin="dense" error={!!errors.middle_name} helperText={errors.middle_name?.message} />
             <TextField {...register('last_name')} label="Last Name" fullWidth margin="dense" error={!!errors.last_name} helperText={errors.last_name?.message} />
-            <TextField {...register('gender')} label="Gender" fullWidth margin="dense" error={!!errors.gender} helperText={errors.gender?.message} />
-            <TextField {...register('mobile_number')} label="Mobile Number" fullWidth margin="dense" error={!!errors.mobile_number} helperText={errors.mobile_number?.message} />
+            <FormControl margin="dense" fullWidth>
+            <InputLabel id="gender-label">Gender</InputLabel>
+              <Select
+                margin='dense'
+                label='Gender'
+                labelId="gender-label" // Link the label to the Select
+                {...register('gender')}
+                defaultValue="male" // Set the default value to male
+              >
+                <MenuItem value="male">Male</MenuItem>
+                <MenuItem value="female">Female</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField {...register('mobile_number')} label="Mobile Number" fullWidth margin="dense" error={!!errors.mobile_number} helperText={errors.mobile_number?.message} inputProps={{ maxLength: 13 }}/>
             <TextField {...register('email')} label="Email" fullWidth margin="dense" error={!!errors.email} helperText={errors.email?.message} />
             <TextField {...register('username')} label="Username" fullWidth margin="dense" error={!!errors.username} helperText={errors.username?.message} />
-            <TextField {...register('password')} label="Password" type="password" fullWidth margin="dense" error={!!errors.password} helperText={errors.password?.message} />
+            <FormControl margin="dense" fullWidth>
+            <InputLabel id="userType-label">User Type</InputLabel>
+            <Select
+              margin='dense'
+              label='User Type'
+              labelId="userType-label" // Link the label to the Select
+              {...register('userType')}
+              defaultValue="admin" // Set the default value to male
+            >
+              <MenuItem value="admin">Admin</MenuItem>
+              <MenuItem value="user">User</MenuItem>
+            </Select>
+          </FormControl>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpenDialog(false)} color="error" variant="contained">Cancel</Button>
@@ -249,10 +274,35 @@ const Users = () => {
             <TextField {...register('first_name')} label="First Name" fullWidth margin="dense" error={!!errors.first_name} helperText={errors.first_name?.message} />
             <TextField {...register('middle_name')} label="Middle Name" fullWidth margin="dense" error={!!errors.middle_name} helperText={errors.middle_name?.message} />
             <TextField {...register('last_name')} label="Last Name" fullWidth margin="dense" error={!!errors.last_name} helperText={errors.last_name?.message} />
-            <TextField {...register('gender')} label="Gender" fullWidth margin="dense" error={!!errors.gender} helperText={errors.gender?.message} />
+            <FormControl margin="dense" fullWidth>
+            <InputLabel id="gender-label">Gender</InputLabel>
+            <Select
+              margin='dense'
+              label='Gender'
+              labelId="gender-label" // Link the label to the Select
+              {...register('gender')}
+              defaultValue="male" // Set the default value to male
+            >
+              <MenuItem value="male">Male</MenuItem>
+              <MenuItem value="female">Female</MenuItem>
+            </Select>
+          </FormControl>
             <TextField {...register('mobile_number')} label="Mobile Number" fullWidth margin="dense" error={!!errors.mobile_number} helperText={errors.mobile_number?.message} />
             <TextField {...register('email')} label="Email" fullWidth margin="dense" error={!!errors.email} helperText={errors.email?.message} />
             <TextField {...register('username')} label="Username" fullWidth margin="dense" error={!!errors.username} helperText={errors.username?.message} />
+            <FormControl margin="dense" fullWidth>
+              <InputLabel id="userType-label">User Type</InputLabel>
+              <Select
+                margin='dense'
+                label='User Type'
+                labelId="userType-label" // Link the label to the Select
+                {...register('userType')}
+                defaultValue="admin" // Set the default value to male
+              >
+                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="user">User</MenuItem>
+              </Select>
+            </FormControl>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpenUpdateDialog(false)} color="error" variant="contained">Cancel</Button>

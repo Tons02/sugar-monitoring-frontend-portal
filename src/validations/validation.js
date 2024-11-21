@@ -1,4 +1,5 @@
 import { yupResolver } from "@hookform/resolvers/yup";
+import dayjs from "dayjs";
 import * as yup from "yup";
 
 export const loginSchema = yup
@@ -19,11 +20,16 @@ export const userSchema = yup.object().shape({
     .required('Mobile Number is required'),  
     email: yup.string().email('Invalid email address').required('Email is required'),
     username: yup.string().required('Username is required'),
+    userType: yup.string().oneOf(['admin', 'user'], 'User Type is required'),
 });
 
 export const sugarMonitoring = yup.object().shape({
   mgdl: yup.number().integer().required('mgdl is required'), // Corrected to yup.number().integer()
   description: yup.string().nullable(), // Optional
+  date: yup
+  .date()
+  .transform((value) => (value instanceof dayjs ? value.toDate() : value)) // Convert dayjs to native Date
+  .required('Date is required'), 
 });
 
 

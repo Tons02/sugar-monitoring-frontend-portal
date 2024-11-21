@@ -19,7 +19,10 @@ const DailyMonitoring = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [openUpdateDialog, setOpenUpdateDialog] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedDailySugar, setSelectedDailySugar] = useState(null);
+
+   // State for delete confirmation dialog
+   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -33,6 +36,7 @@ const DailyMonitoring = () => {
     handleSubmit,
     formState: { errors },
     reset,
+    watch
   } = useForm({
     resolver: yupResolver(sugarMonitoring),
   });
@@ -83,6 +87,64 @@ const DailyMonitoring = () => {
     }
   };
 
+  const handleUpdateDailySugar = async (data) => {
+    // Format the date to 'YYYY-MM-DD HH:mm:ss' before submitting
+    const formattedDate = dayjs(data.date).format('YYYY-MM-DD HH:mm:ss');
+    const requestData = {
+      ...data,  // Spread all the data fields
+      date: formattedDate  // Set the formatted date
+    };
+    
+    try {
+      const response = await API.put(`/daily-sugar/${selectedDailySugar.id}`, requestData);
+      console.log('Daily Sugar updated:', response.data);
+      fetchDailyMonitoring();
+      setOpenUpdateDialog(false);
+      
+      setSnackbar({
+        open: true,
+        message: response?.data?.message,
+        severity: "success",
+      });
+    } catch (error) {
+      console.error('Error updating', error?.response?.data?.errors);
+      const errorMessages = error?.response?.data?.errors
+        ? error.response.data.errors.map((err) => err.detail).join(', ')
+        : error?.message || 'An unexpected error occurred';
+
+      setSnackbar({
+        open: true,
+        message: errorMessages,
+        severity: "error",
+      });
+    }
+  };
+
+  const handleDeleteDailySugar = async () => {
+    try {
+      const response = await API.put(`/daily-sugar-archived/${selectedDailySugar.id}`);  // Archiving the user
+      console.log('User archived:', response.data);
+      fetchDailyMonitoring();
+      setOpenDeleteDialog(false);  // Close the delete confirmation dialog
+      setSnackbar({
+        open: true,
+        message: response?.data?.message,
+        severity: "success",
+      });
+    } catch (error) {
+      console.error('Error archiving', error?.response?.data?.errors);
+      const errorMessages = error?.response?.data?.errors
+        ? error.response.data.errors.map((err) => err.detail).join(', ')
+        : error?.message || 'An unexpected error occurred';
+
+      setSnackbar({
+        open: true,
+        message: errorMessages,
+        severity: "error",
+      });
+    }
+  };
+
   const columns = [
     { field: 'id', headerName: 'ID', flex: 1 },
     { field: 'user', headerName: 'Name', flex: 2, valueGetter: (params) => params .name || 'No Name'},
@@ -121,7 +183,7 @@ const DailyMonitoring = () => {
           <IconButton color="primary" onClick={() => handleEdit(params.row)}>
             <Edit />
           </IconButton>
-          <IconButton color="error">
+          <IconButton color="error" onClick={() => handleDeleteClick (params.row)}>
             <Delete />
           </IconButton>
         </>
@@ -142,6 +204,17 @@ const DailyMonitoring = () => {
     if (event.key === 'Enter') {
       fetchDailyMonitoring();
     }
+  };
+
+  const handleEdit = (dailySugar) => {
+    setSelectedDailySugar(dailySugar);
+    reset(dailySugar);
+    setOpenUpdateDialog(true);
+  };
+
+  const handleDeleteClick = (dailySugar) => {
+    setSelectedDailySugar(dailySugar);  // Set the user to delete
+    setOpenDeleteDialog(true);  // Open the confirmation dialog
   };
 
   return (
@@ -200,25 +273,16 @@ const DailyMonitoring = () => {
               />
             </Grid>
             <Grid item xs={6}>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <Controller
-                name="date"
-                control={control}
-                render={({ field }) => (
-                  <DateTimePicker
-                    sx={{ 
-                    marginTop: '8px', 
+             <LocalizationProvider  dateAdapter={AdapterDayjs}>
+                <DateTimePicker 
+                  label="Date"
+                  sx={{
+                    marginTop: '8px',
                   }}
-                    {...field} // Pass react-hook-form field props
-                    onChange={(date) => field.onChange(date)} // Update react-hook-form field value
-                    value={field.value || null} // Ensure value is properly set (null if no date)
-                    error={!!errors.date}
-                    helperText={errors.date?.message}
-                    label="Select Date"
-                    renderInput={(params) => <TextField {...params} fullWidth />}
-                  />
-                )}
-              />
+                  slotProps={{ 
+                    textField: {helperText: errors.date?.message, error:!!errors.date },
+                   }}
+                />
             </LocalizationProvider>
             </Grid>
           </Grid>
@@ -236,6 +300,67 @@ const DailyMonitoring = () => {
             <Button type="submit" color="success" variant="contained">Create</Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Update Daily Sugar Dialog */}
+      <Dialog open={openUpdateDialog} onClose={() => setOpenUpdateDialog(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Update Daily Sugar</DialogTitle>
+        <form onSubmit={handleSubmit(handleUpdateDailySugar)}>
+          <DialogContent>
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <TextField 
+                {...register('mgdl')} 
+                label="MG/DL" 
+                margin="dense" 
+                fullWidth
+                error={!!errors.mgdl} 
+                helperText={errors.mgdl?.message} 
+              />
+            </Grid>
+            <Grid item xs={6}>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DateTimePicker
+                {...register('date')}
+                label="Date"
+                value={watch('date') ? dayjs(watch('date')) : null}  // Ensure value is a Dayjs object
+                onChange={(newValue) => setValue('date', newValue)}  // Update form state with the new value
+                sx={{
+                  marginTop: '8px',
+                }}
+                slotProps={{
+                  textField: { helperText: errors.date?.message, error: !!errors.date },
+                }}
+              />
+            </LocalizationProvider>
+            </Grid>
+          </Grid>
+          <TextField 
+            {...register('description')} 
+            label="Description" 
+            fullWidth 
+            margin="dense" 
+            error={!!errors.description} 
+            helperText={errors.description?.message} 
+          />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenUpdateDialog(false)} color="error" variant="contained">Cancel</Button>
+            <Button type="submit" color="success" variant="contained">Update</Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* Confirmation Dialog for Delete */}
+      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to archive this record?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteDialog(false)} color="error" variant="contained">Cancel</Button>
+          <Button onClick={handleDeleteDailySugar} color="success" variant="contained">Yes, Archive</Button>
+        </DialogActions>
       </Dialog>
 
        {/* Snackbar for notifications */}
