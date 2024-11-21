@@ -107,6 +107,16 @@ export default function MiniDrawer() {
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
   const [openModal, setOpenModal] = React.useState(false);
+  const storedData = JSON.parse(localStorage.getItem("user"));
+
+  // Declare accessPermissions outside the block
+  let accessPermissions = [];
+
+  if (storedData.userType === "admin") {
+    accessPermissions = ["admin", "user"]; // Array of permissions for admin
+  } else {
+    accessPermissions = ["user"]; // Array of permissions for user
+  }
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -136,7 +146,7 @@ export default function MiniDrawer() {
     const handleLogout = () => {
       // Remove token and user from localStorage
       localStorage.removeItem('token');
-      localStorage.removeItem('userID');
+      localStorage.removeItem('user');
   
       // Redirect to the homepage or login page after logout
       navigate('/');
@@ -175,7 +185,7 @@ export default function MiniDrawer() {
         </DrawerHeader>
         <Divider />
          <List>
-            <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItem disablePadding sx={{ display: 'block' }} >
                 <ListItemButton
                 sx={[
                     {
@@ -224,54 +234,57 @@ export default function MiniDrawer() {
                 </ListItemButton>
             </ListItem>
 
+            {accessPermissions.includes("admin") && ( // Only render if the user has "admin" permission
             <ListItem disablePadding sx={{ display: 'block' }}>
-                <ListItemButton
+              <ListItemButton
                 sx={[
-                    {
+                  {
                     minHeight: 48,
                     px: 2.5,
-                    },
-                    open
+                  },
+                  open
                     ? {
                         justifyContent: 'initial',
-                        }
+                      }
                     : {
                         justifyContent: 'center',
-                        },
+                      },
                 ]}
                 onClick={() => handleNavigation('/dashboard/users')}
-                >
+              >
                 <ListItemIcon
-                    sx={[
+                  sx={[
                     {
-                        minWidth: 0,
-                        justifyContent: 'center',
+                      minWidth: 0,
+                      justifyContent: 'center',
                     },
                     open
-                        ? {
-                            mr: 3,
+                      ? {
+                          mr: 3,
                         }
-                        : {
-                            mr: 'auto',
+                      : {
+                          mr: 'auto',
                         },
-                    ]}
+                  ]}
                 >
-                    <PersonIcon />
+                  <PersonIcon />
                 </ListItemIcon>
                 <ListItemText
-                    primary="Users"
-                    sx={[
+                  primary="Users"
+                  sx={[
                     open
-                        ? {
-                            opacity: 1,
+                      ? {
+                          opacity: 1,
                         }
-                        : {
-                            opacity: 0,
+                      : {
+                          opacity: 0,
                         },
-                    ]}
+                  ]}
                 />
-                </ListItemButton>
+              </ListItemButton>
             </ListItem>
+          )}
+          {accessPermissions.includes("user") && ( 
             <ListItem disablePadding sx={{ display: 'block' }}>
                 <ListItemButton
                 sx={[
@@ -320,6 +333,7 @@ export default function MiniDrawer() {
                 />
                 </ListItemButton>
             </ListItem>
+            )}
             </List>
         <Divider />
         <List>

@@ -30,20 +30,28 @@ const DailyMonitoring = () => {
     severity: "info",
   });
 
+
   const {
     register,
     control,
     handleSubmit,
     formState: { errors },
     reset,
-    watch
+    watch, 
+    setValue,
   } = useForm({
+    defaultValues: {
+      date: dayjs(), 
+    },
     resolver: yupResolver(sugarMonitoring),
   });
 
+console.log("date",watch.date)
+
   const fetchDailyMonitoring = async () => {
     try {
-      const response = await API.get(`/daily-sugar?search=${searchTerm}&pagination=1&page=${page + 1}&per_page=${rowsPerPage}&user=${localStorage.getItem("userID")}&status=is_active`);
+      const user = JSON.parse(localStorage.getItem("user"))
+      const response = await API.get(`/daily-sugar?search=${searchTerm}&pagination=1&page=${page + 1}&per_page=${rowsPerPage}&user=${user.id}&status=is_active`);
       setDailyMonitoring(response?.data?.data || []);
       setTotalCount(response?.data?.data?.total || 0);
     } catch (error) {
@@ -274,15 +282,18 @@ const DailyMonitoring = () => {
             </Grid>
             <Grid item xs={6}>
              <LocalizationProvider  dateAdapter={AdapterDayjs}>
-                <DateTimePicker 
-                  label="Date"
-                  sx={{
-                    marginTop: '8px',
-                  }}
-                  slotProps={{ 
-                    textField: {helperText: errors.date?.message, error:!!errors.date },
-                   }}
-                />
+             <DateTimePicker
+                {...register('date')}
+                label="Date"
+                value={watch('date') ? dayjs(watch('date')) : null}  // Ensure value is a Dayjs object
+                onAccept={(newValue) => setValue('date', newValue)}  // Update form state with the new value
+                sx={{
+                  marginTop: '8px',
+                }}
+                slotProps={{
+                  textField: { helperText: errors.date?.message, error: !!errors.date },
+                }}
+              />
             </LocalizationProvider>
             </Grid>
           </Grid>
@@ -324,7 +335,7 @@ const DailyMonitoring = () => {
                 {...register('date')}
                 label="Date"
                 value={watch('date') ? dayjs(watch('date')) : null}  // Ensure value is a Dayjs object
-                onChange={(newValue) => setValue('date', newValue)}  // Update form state with the new value
+                onAccept={(newValue) => setValue('date', newValue)}  // Update form state with the new value
                 sx={{
                   marginTop: '8px',
                 }}

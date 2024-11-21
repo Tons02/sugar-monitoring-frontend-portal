@@ -7,6 +7,8 @@ import Mainlayout from "../../layout/MainLayout"
 import Dashboard from "../../pages/Dashboard"
 import Users from "../../pages/Users";
 import DailyMonitoring from "../../pages/DailyMonitoring";
+import NotFound from "../../pages/NotFound";
+import AccessPermissionContext from "./AccessPermissionContext";
 const router = createBrowserRouter([
     {
       element: <PreventLoginRoutes />,
@@ -18,30 +20,44 @@ const router = createBrowserRouter([
       ],
     },
     {
-      element: <PrivateRoutes />,  // Wrap the dashboard route with PrivateRoutes
+      path: "/dashboard",
+      element: <Mainlayout />,
+      errorElement: <PrivateRoutes />,  // Wrap the dashboard route with PrivateRoutes
       children: [
-        {
-          path: "/dashboard",
-          element: <Mainlayout />,
-          children: [
-            {
-              index: true,
-              element: <Dashboard/>,
-            },
-            {
-              path: "users",
-              index: true,
-              element: <Users/>,
-            },
-            {
+          {
+            index: true,
+            element: <Dashboard/>,
+          },
+          {
+            path: "users",
+            index: true,
+            element: (
+                 <AccessPermissionContext
+                    permission="admin"
+                    context="routing"
+                  >
+                  <Users/>
+                </AccessPermissionContext>
+            )
+          },
+          {
               path: "monitoring",
               index: true,
-              element: <DailyMonitoring/>,
-            },
-          ],
-        },
+              element: (
+                <AccessPermissionContext
+                  permission="user"
+                  context="routing"
+                >
+                <DailyMonitoring/>
+              </AccessPermissionContext>
+          )
+          },
+          {
+            path: "*",
+            element: <NotFound />,
+          },
       ],
-    },
+    }
   ]);
   
 

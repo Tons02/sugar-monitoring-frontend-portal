@@ -41,7 +41,7 @@ const LoginForm = () => {
         severity: "success",
       });
       
-      localStorage.setItem("userID", response?.data?.data?.id);
+      localStorage.setItem("user", JSON.stringify(response?.data?.data));
       localStorage.setItem("token", response?.data?.token);
       
       navigate('/dashboard');
