@@ -10,6 +10,7 @@ import DailyMonitoring from "../../pages/DailyMonitoring";
 import NotFound from "../../pages/NotFound";
 import AccessPermissionContext from "./AccessPermissionContext";
 import SugarConverter from "../../pages/SugarConverter";
+import SettingPage from "../../pages/SettingPage";
 const router = createBrowserRouter([
     {
       element: <PreventLoginRoutes />,
@@ -53,17 +54,18 @@ const router = createBrowserRouter([
               </AccessPermissionContext>
           )
           },
-          
           {
             path: "sugarConverter",
             index: true,
             element: (
-              <AccessPermissionContext
-                permission="user"
-                context="routing"
-              >
               <SugarConverter/>
-            </AccessPermissionContext>
+          )
+          },
+          {
+            path: "settings",
+            index: true,
+            element: (
+              <SettingPage/>
         )
         },
           {

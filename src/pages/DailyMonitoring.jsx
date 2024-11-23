@@ -197,7 +197,7 @@ const DailyMonitoring = () => {
      </Typography>
      <Breadcrumbs aria-label="breadcrumb" sx={{ paddingBottom: 2 }}>
         <Link color="inherit" href="/">Home</Link>
-        <Link color="inherit" href="/dashboard/monitoring">Daily Monitoring</Link>
+        <Link color="inherit" href="/dashboard/users">Users</Link>
       </Breadcrumbs>
       <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ marginBottom: 2 }}>
       <Button variant="contained" color="success" onClick={() => handleCreate()}>

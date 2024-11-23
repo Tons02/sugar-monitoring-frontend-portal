@@ -32,5 +32,10 @@ export const dailySugarMonitoring = yup.object().shape({
   .required('Date is required'), 
 });
 
+export const changePasswordSchema = yup.object().shape({
+  old_password: yup.string().required('Old Password is required'),
+  new_password: yup.string().required('New Password is required'), 
+  confirm_password: yup.string().required('Confirm Password is required'), 
+});
 
 export default { loginSchema, userSchema, dailySugarMonitoring };

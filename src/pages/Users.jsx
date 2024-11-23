@@ -98,10 +98,11 @@ const Users = () => {
         severity: "success",
       });
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.log(error?.data?.errors)
+      error?.data?.errors.map((inputError, index) => setError(cleanPointer(inputError?.source?.pointer), { type: 'message', message: inputError?.detail }))
       setSnackbar({
         open: true,
-        message: error?.message || 'An unexpected error occurred',
+        message: 'Please Double Check your input',
         severity: "error",
       });
     }
