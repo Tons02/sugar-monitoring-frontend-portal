@@ -14,6 +14,7 @@ import API from "../services/HTTPRequest";
 import { Navigate, useNavigate } from "react-router-dom";
 import { loginSchema } from "../validations/validation";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { useLoginMutation } from "../redux/slices/apiSlice";
 
 const LoginForm = () => {
   const {
@@ -30,10 +31,17 @@ const LoginForm = () => {
   });
   
   const navigate = useNavigate();
+  
+  const [login] = useLoginMutation();
+
+  
+  function cleanPointer(pointer) {
+    return pointer?.replace(/^\//, ""); // Removes the leading '/'
+  }
 
   const onSubmit = async (data) => {
     try {
-      const response = await API.post("/login", data);
+      const response = await login(data).unwrap();  
 
       setSnackbar({
         open: true,
@@ -41,18 +49,18 @@ const LoginForm = () => {
         severity: "success",
       });
       
-      localStorage.setItem("user", JSON.stringify(response?.data?.data));
-      localStorage.setItem("token", response?.data?.token);
+      localStorage.setItem("user", JSON.stringify(response?.data));
+      localStorage.setItem("token", response?.token);
       
       navigate('/dashboard');
       
     } catch (error) {
-      console.log(error?.response?.data?.errors?.[0]?.title);
+      console.log(error?.data?.errors?.[0]?.title);
 
       setSnackbar({
         open: true,
         message:
-          error?.response?.data?.errors?.[0]?.title ||
+          error?.data?.errors?.[0]?.title ||
           "Login failed. Please try again.",
         severity: "error",
       });

@@ -16,6 +16,14 @@ export const apiSlice = createApi({
   }),
   tagTypes: ['Users', 'DailySugar'],
   endpoints: (builder) => ({
+    // Login endpoints
+    login: builder.mutation({
+      query: (credentials) => ({
+        url: `/login`,
+        method: 'POST',
+        body: credentials,
+      }),
+    }),
     // User endpoints
     getUser: builder.query({
       query: ({ search, page, per_page, status }) => `/user?search=${search}&page=${page}&per_page=${per_page}&status=${status}`,
@@ -82,6 +90,7 @@ export const apiSlice = createApi({
 
 // Export the generated hooks
 export const {
+  useLoginMutation,
   useGetUserQuery,
   useAddUserMutation,
   useUpdateUserMutation,
