@@ -55,7 +55,17 @@ export const apiSlice = createApi({
       invalidatesTags: ['Users'],
     }),
 
-    // Daily Sugar endpoints
+    
+    // Reset Password
+    resetPasswordUser: builder.mutation({
+      query: ({ id }) => ({
+        url: `/resetpassword/${id}`,
+        method: 'PATCH',
+        body: id,
+      }),
+      invalidatesTags: ['Users'],
+    }),
+
     getDailySugar: builder.query({
       query: ({ search, page, per_page, status, userID }) => `/daily-sugar?search=${search}&page=${page}&per_page=${per_page}&status=${status}&user=${userID}`,
       method: 'GET',
@@ -95,6 +105,7 @@ export const {
   useAddUserMutation,
   useUpdateUserMutation,
   useArchivedUserMutation,
+  useResetPasswordUserMutation,
   useGetDailySugarQuery,
   useAddDailySugarMutation,
   useUpdateDailySugarMutation,

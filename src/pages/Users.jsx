@@ -9,7 +9,7 @@ import { CheckBox, Delete, Edit } from '@mui/icons-material';
 import { userSchema } from "../validations/validation";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useForm } from 'react-hook-form';
-import { useGetUserQuery, useAddUserMutation, useUpdateUserMutation, useArchivedUserMutation } from '../redux/slices/apiSlice';
+import { useGetUserQuery, useAddUserMutation, useUpdateUserMutation, useArchivedUserMutation, useResetPasswordUserMutation } from '../redux/slices/apiSlice';
 
 const Users = () => {
   const [page, setPage] = useState(0);
@@ -18,6 +18,7 @@ const Users = () => {
   const [status, setStatus] = useState("active");
   const [openDialog, setOpenDialog] = useState(false);
   const [openUpdateDialog, setOpenUpdateDialog] = useState(false);
+  const [openResetPasswordDialog, setOpenResetPasswordDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
@@ -54,6 +55,7 @@ const Users = () => {
   const [addUser] = useAddUserMutation();
   const [updateUser] = useUpdateUserMutation();
   const [archiveUser] = useArchivedUserMutation();
+  const [ResetPasswordUser] = useResetPasswordUserMutation()
 
   function cleanPointer(pointer) {
     return pointer?.replace(/^\//, ""); // Removes the leading '/'
@@ -127,6 +129,28 @@ const Users = () => {
     }
   };
 
+  // Handle Reset Password User
+  const handleResetPasswordUser = async (data) => {
+    try {
+      const response = await ResetPasswordUser({ ...data, id: selectedUser.id }).unwrap();
+      console.log('User reset password:', response);
+      refetch();
+      handleClose(false);
+      setSnackbar({
+        open: true,
+        message: response?.message,
+        severity: "success",
+      });
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      setSnackbar({
+        open: true,
+        message: error?.message || 'An unexpected error occurred',
+        severity: "error",
+      });
+    }
+  };
+
   const handleCreate = () => {
     reset({
       first_name: "",
@@ -149,6 +173,11 @@ const Users = () => {
     setOpenUpdateDialog(true);
   };
 
+  const handleResetPassword = (user) => {
+    setSelectedUser(user);
+    setOpenResetPasswordDialog(true);
+  };
+
   const handleDeleteClick = (user) => {
     setSelectedUser(user);
     setOpenDeleteDialog(true);
@@ -157,6 +186,7 @@ const Users = () => {
   const handleClose = () => {
     setSelectedUser(null);
     setOpenUpdateDialog(false);
+    setOpenResetPasswordDialog(false);
   };
 
   
@@ -283,25 +313,28 @@ const Users = () => {
                 <TableCell align="center">{row.mobile_number}</TableCell>
                 <TableCell align="center">{row.userType}</TableCell>
                 <TableCell align="center" sx={{ padding: '5px' }}>
-                <Box display="flex" gap={1}>
-                  {
-                  status === "active" ? (
-                    <>
-                      <Button variant="contained" color="success" onClick={() => { handleEdit(row) }}>
-                        EDIT
-                      </Button>
-                      <Button variant="contained" color="error" onClick={() => { handleDeleteClick(row) }}>
-                        Delete
-                      </Button>
-                    </>
-                  ) : (
-                    <Button variant="contained" color="success" onClick={() => { handleDeleteClick(row) }}>
-                      Restore
-                    </Button>
-                  )
-                }   
-                </Box>
-              </TableCell>
+                  <Box display="flex" gap={1} justifyContent="center" alignItems="center">
+                    {
+                      status === "active" ? (
+                        <> 
+                          <Button variant="contained" color="success" onClick={() => { handleResetPassword(row) }}>
+                            Reset Password
+                          </Button>
+                          <Button variant="contained" color="success" onClick={() => { handleEdit(row) }}>
+                            EDIT
+                          </Button>
+                          <Button variant="contained" color="error" onClick={() => { handleDeleteClick(row) }}>
+                            Delete
+                          </Button>
+                        </>
+                      ) : (
+                        <Button variant="contained" color="success" onClick={() => { handleDeleteClick(row) }}>
+                          Restore
+                        </Button>
+                      )
+                    }   
+                  </Box>
+                </TableCell>
               </TableRow>
             ))
           )}
@@ -439,6 +472,20 @@ const Users = () => {
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)} color="error" variant="contained">Cancel</Button>
           <Button onClick={handleDeleteUser} color="success" variant="contained">Yes</Button>
+        </DialogActions>
+      </Dialog>
+
+       {/* Confirmation Dialog for Reset password */}
+       <Dialog open={openResetPasswordDialog} onClose={() => setOpenDeleteDialog(false)}>
+       <DialogTitle>Reset Password</DialogTitle>
+        <Divider />
+        <DialogContent>
+          <Typography>Are you sure you want to reset the password of this user?</Typography>
+        </DialogContent>
+        <Divider />
+        <DialogActions>
+          <Button onClick={() => handleClose(false)} color="error" variant="contained">Cancel</Button>
+          <Button onClick={handleResetPasswordUser} color="success" variant="contained">Yes</Button>
         </DialogActions>
       </Dialog>
 
