@@ -22,6 +22,7 @@ import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import CalculateIcon from '@mui/icons-material/Calculate';
 
 const drawerWidth = 240;
 
@@ -334,6 +335,54 @@ export default function MiniDrawer() {
                 </ListItemButton>
             </ListItem>
             )}
+            <ListItem disablePadding sx={{ display: 'block' }}>
+                <ListItemButton
+                sx={[
+                    {
+                    minHeight: 48,
+                    px: 2.5,
+                    },
+                    open
+                    ? {
+                        justifyContent: 'initial',
+                        }
+                    : {
+                        justifyContent: 'center',
+                        },
+                ]}
+                onClick={() => handleNavigation('/dashboard/sugarConverter')}
+                >
+                <ListItemIcon
+                    sx={[
+                    {
+                        minWidth: 0,
+                        justifyContent: 'center',
+                    },
+                    open
+                        ? {
+                            mr: 3,
+                        }
+                        : {
+                            mr: 'auto',
+                        },
+                    ]}
+                >
+                    <CalculateIcon />
+                </ListItemIcon>
+                <ListItemText
+                    primary="Sugar Converter"
+                    sx={[
+                    open
+                        ? {
+                            opacity: 1,
+                        }
+                        : {
+                            opacity: 0,
+                        },
+                    ]}
+                />
+                </ListItemButton>
+            </ListItem>
             </List>
         <Divider />
         <List>
