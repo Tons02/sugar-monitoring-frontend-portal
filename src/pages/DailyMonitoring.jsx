@@ -1,28 +1,24 @@
-import { Alert, Box, Breadcrumbs, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Grid, IconButton, Paper, Snackbar, TextField, Typography } from '@mui/material'
-import { DataGrid } from '@mui/x-data-grid';
-import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import API from '../services/HTTPRequest';
-import { Delete, Edit } from '@mui/icons-material';
-import dayjs from 'dayjs';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { sugarMonitoring } from '../validations/validation';
-import { Controller, useForm } from 'react-hook-form';
-import { DatePicker, DateTimePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { Alert, Box, Breadcrumbs, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, Grid, Paper, Skeleton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField, Typography } from '@mui/material'
+import React, { useState } from 'react'
+import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom'
+import { dailySugarMonitoring } from '../validations/validation';
+import dayjs from 'dayjs';
+import { useAddDailySugarMutation, useArchivedDailySugarMutation, useGetDailySugarQuery, useUpdateDailySugarMutation } from '../redux/slices/apiSlice';
+import { DateTimePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'; 
 
 const DailyMonitoring = () => {
-  const [dailyMonitoring, setDailyMonitoring] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("active");
+  const [selectedID, setSelectedID] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [openUpdateDialog, setOpenUpdateDialog] = useState(false);
-  const [selectedDailySugar, setSelectedDailySugar] = useState(null);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
-   // State for delete confirmation dialog
-   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -30,244 +26,315 @@ const DailyMonitoring = () => {
     severity: "info",
   });
 
-
   const {
     register,
-    control,
     handleSubmit,
     formState: { errors },
     reset,
-    watch, 
-    setValue,
+    setError,
+    watch,
+    inputError,
+    setValue
   } = useForm({
     defaultValues: {
+      mgdl:"",
+      description:"",
       date: dayjs(), 
+
     },
-    resolver: yupResolver(sugarMonitoring),
+    resolver: yupResolver(dailySugarMonitoring),
   });
 
-console.log("date",watch.date)
+  const userID = JSON.parse(localStorage.getItem("user"))?.id ?? null;
 
-  const fetchDailyMonitoring = async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user"))
-      const response = await API.get(`/daily-sugar?search=${searchTerm}&pagination=1&page=${page + 1}&per_page=${rowsPerPage}&user=${user.id}&status=is_active`);
-      setDailyMonitoring(response?.data?.data || []);
-      setTotalCount(response?.data?.data?.total || 0);
-    } catch (error) {
-      console.error('Error fetching Daily Monitoring:', error);
-    }
-  };
+  // Fetch users with RTK Query hook
+  const { data: dailyMonitoring, isLoading, isError, error, refetch } = useGetDailySugarQuery({ search, page: page + 1, per_page: rowsPerPage, status , userID });
 
-  useEffect(() => {
-    fetchDailyMonitoring();
-  }, [page, rowsPerPage, searchTerm]);
+  const [addDailySugar] = useAddDailySugarMutation();
+  const [updateDailySugar] = useUpdateDailySugarMutation();
+  const [archiveDailySugar] = useArchivedDailySugarMutation();
 
-  const handleCreateDailyMonitoring = async (data) => {
-    // Format the date to 'YYYY-MM-DD HH:mm:ss' before submitting
+  function cleanPointer(pointer) {
+    return pointer?.replace(/^\//, ""); // Removes the leading '/'
+  }
+  
+  // Handle Create Daily Sugar
+  const handleCreateDailySugar = async (data) => {
     const formattedDate = dayjs(data.date).format('YYYY-MM-DD HH:mm:ss');
     const requestData = {
       ...data,  // Spread all the data fields
       date: formattedDate  // Set the formatted date
     };
     try {
-      const response = await API.post('/daily-sugar', requestData);
-      console.log('Daily sugar created:', response.data);
-      fetchDailyMonitoring();
+      const response = await addDailySugar(requestData).unwrap();  // Using RTK Query's unwrap method for response handling
+      console.log('Daily sugar created:', response);
       setOpenDialog(false);
+      refetch();
       reset();
       setSnackbar({
         open: true,
-        message: response?.data?.message,
+        message: response?.message,
         severity: "success",
       });
     } catch (error) {
-      console.error('Error creating daily sugar:', error?.response?.data?.errors);
-      const errorMessages = error?.response?.data?.errors
-        ? error.response.data.errors.map((err) => err.detail).join(', ')
-        : error?.message || 'An unexpected error occurred';
-
+      console.log(error?.data?.errors)
+      error?.data?.errors.map((inputError, index) => setError(cleanPointer(inputError?.source?.pointer), { type: 'message', message: inputError?.detail }))
       setSnackbar({
         open: true,
-        message: errorMessages,
+        message: 'Please Double Check your input',
         severity: "error",
       });
     }
   };
 
+  // Handle Update Daily Sugar
   const handleUpdateDailySugar = async (data) => {
-    // Format the date to 'YYYY-MM-DD HH:mm:ss' before submitting
     const formattedDate = dayjs(data.date).format('YYYY-MM-DD HH:mm:ss');
     const requestData = {
       ...data,  // Spread all the data fields
       date: formattedDate  // Set the formatted date
     };
-    
+
     try {
-      const response = await API.put(`/daily-sugar/${selectedDailySugar.id}`, requestData);
-      console.log('Daily Sugar updated:', response.data);
-      fetchDailyMonitoring();
+      const response = await updateDailySugar({ ...requestData, id: requestData.id }).unwrap();
+      console.log('Daily Sugar updated:', response);
+      refetch();
       setOpenUpdateDialog(false);
-      
       setSnackbar({
         open: true,
-        message: response?.data?.message,
+        message: response?.message,
         severity: "success",
       });
     } catch (error) {
-      console.error('Error updating', error?.response?.data?.errors);
-      const errorMessages = error?.response?.data?.errors
-        ? error.response.data.errors.map((err) => err.detail).join(', ')
-        : error?.message || 'An unexpected error occurred';
-
+      console.error('Error updating daily sugar:', error);
       setSnackbar({
         open: true,
-        message: errorMessages,
+        message: error?.message || 'An unexpected error occurred',
         severity: "error",
       });
     }
   };
 
-  const handleDeleteDailySugar = async () => {
+   // Handle Delete/Archive User
+   const handleDeleteDailySugar = async () => {
+   
     try {
-      const response = await API.put(`/daily-sugar-archived/${selectedDailySugar.id}`);  // Archiving the user
-      console.log('User archived:', response.data);
-      fetchDailyMonitoring();
-      setOpenDeleteDialog(false);  // Close the delete confirmation dialog
+      const response = await archiveDailySugar({ id: selectedID }).unwrap();
+      console.log('Daily Sugar archived:', response);
+      setOpenDeleteDialog(false);
+      refetch();
       setSnackbar({
         open: true,
-        message: response?.data?.message,
+        message: response?.message,
         severity: "success",
       });
-    } catch (error) {
-      console.error('Error archiving', error?.response?.data?.errors);
-      const errorMessages = error?.response?.data?.errors
-        ? error.response.data.errors.map((err) => err.detail).join(', ')
-        : error?.message || 'An unexpected error occurred';
-
+    } catch (errors) {
+      console.error('Error archiving daily sugar:', errors?.data?.errors?.[0]?.detail);
       setSnackbar({
         open: true,
-        message: errorMessages,
+        message: errors?.data?.errors?.[0]?.detail || 'An unexpected error occurred',
         severity: "error",
       });
     }
   };
 
-  const columns = [
-    { field: 'id', headerName: 'ID', flex: 1 },
-    { field: 'user', headerName: 'Name', flex: 2, valueGetter: (params) => params .name || 'No Name'},
-    { field: 'mgdl', headerName: 'mgdl', flex: 1 },
-    { field: 'description', headerName: 'Description', flex: 2 },
-    { field: 'status', headerName: 'Status', flex: 1, renderCell: (params) => {
-      let color;
-      if (params.value === 'high') color = 'red';
-      else if (params.value === 'normal') color = 'green';
-      else if (params.value === 'low') color = 'yellow';
-      
-      return (
-        <Chip
-          label={params.value}
-          style={{ color }}
-          variant="outlined" // Adding outlined variant
-          color="default" // Ensures the outline color is based on the text color
-          sx={{
-            borderColor: color, // Dynamic outline color
-            padding: '4px 8px', // Optional: Adds padding for better appearance
-          }}
-        />
-      );
-    }, 
-  },
-    { field: 'date', headerName: 'Date', flex: 2, valueFormatter: (params) => {
-      if (!params) return '';
-      return dayjs(params).format('MMMM DD, YYYY hh:mm A'); // Format: November 18, 2024
-    }, },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      flex: 2,
-      renderCell: (params) => (
-        <>
-          <IconButton color="primary" onClick={() => handleEdit(params.row)}>
-            <Edit />
-          </IconButton>
-          <IconButton color="error" onClick={() => handleDeleteClick (params.row)}>
-            <Delete />
-          </IconButton>
-        </>
-      ),
-    },
-  ];
-
-  const handleChangePage = (event, newPage) => setPage(newPage);
-
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+  const handleCreate = () => {
+    reset({
+      mgdl: "",
+      date: dayjs(),
+      description: "",
+    });
+    setOpenDialog(true);
   };
+  
 
-  const handleSearchChange = (event) => setSearchTerm(event.target.value);
 
-  const handleKeyDown = (event) => {
-    if (event.key === 'Enter') {
-      fetchDailyMonitoring();
-    }
-  };
-
-  const handleEdit = (dailySugar) => {
-    setSelectedDailySugar(dailySugar);
-    reset(dailySugar);
+  const handleEdit = () => {
     setOpenUpdateDialog(true);
   };
 
-  const handleDeleteClick = (dailySugar) => {
-    setSelectedDailySugar(dailySugar);  // Set the user to delete
-    setOpenDeleteDialog(true);  // Open the confirmation dialog
+  const handleDeleteClick = (row) => {
+    setSelectedID(row.id);
+    setOpenDeleteDialog(true);
   };
+
+  const handleClose = () => {
+    setSelectedID(null)
+    setOpenDeleteDialog(false);
+  };
+
+
+  
+  const handleSearchChange = (event) => {
+    setSearch(event.target.value);  // Update the search state when typing
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0); // Reset to first page when changing rows per page
+  };
+
+  const handleChangeStatus = (event) => {
+    // Update status based on checkbox state
+    if (event.target.checked) {
+      setStatus("inactive");
+      refetch()
+    } else {
+      setStatus("active");
+      refetch()
+    }
+  };
+
 
   return (
     <>
-       <Typography variant="h4" gutterBottom>
-        Monitoring
-      </Typography>
-      <Breadcrumbs aria-label="breadcrumb" sx={{ paddingBottom: 2 }}>
+    <Typography variant="h4" gutterBottom>
+       Daily Monitoring
+     </Typography>
+     <Breadcrumbs aria-label="breadcrumb" sx={{ paddingBottom: 2 }}>
         <Link color="inherit" href="/">Home</Link>
-        <Link color="inherit" href="/users">Monitoring</Link>
+        <Link color="inherit" href="/dashboard/monitoring">Daily Monitoring</Link>
       </Breadcrumbs>
-
       <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ marginBottom: 2 }}>
-        <Button variant="contained" color="success" onClick={() => setOpenDialog(true)}>
+      <Button variant="contained" color="success" onClick={() => handleCreate()}>
           Add
-        </Button>
+      </Button>
+      </Box>
+      <TableContainer component={Paper}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ padding: 1.5 }}  // Adding padding here
+      >
+         <FormControlLabel
+            control={<Checkbox color="success" onChange={handleChangeStatus} />}
+            label="Archived"
+          />
         <TextField
           label="Search"
           variant="outlined"
-          value={searchTerm}
-          onChange={handleSearchChange}
-          onKeyDown={handleKeyDown}
+          value={search}
+          onChange={handleSearchChange} 
           sx={{ width: 300 }}
         />
       </Box>
+      <Table sx={{ minWidth: 650 }} aria-label="simple table">
+        <TableHead>
+          <TableRow>
+            <TableCell>ID</TableCell>
+            <TableCell align="center">Name</TableCell>
+            <TableCell align="center">Mgdl</TableCell>
+            <TableCell align="center">Description</TableCell>
+            <TableCell align="center">Status</TableCell>
+            <TableCell align="center">Date</TableCell>
+            <TableCell align="center">Action</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {/* If loading, show skeleton loader */}
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, index) => (
+              <TableRow key={index}>
+                <TableCell  align="center" component="th" scope="row">
+                  <Skeleton width="80%" />
+                </TableCell>
+                <TableCell align="center">
+                  <Skeleton width="60%" />
+                </TableCell>
+                <TableCell align="center">
+                  <Skeleton width="70%" />
+                </TableCell>
+                <TableCell align="center">
+                  <Skeleton width="60%" />
+                </TableCell>
+                <TableCell align="center">
+                  <Skeleton width="80%" />
+                </TableCell>
+                <TableCell align="center">
+                  <Skeleton width="90%" />
+                </TableCell>
+                <TableCell align="center">
+                  <Skeleton width="70%" />
+                </TableCell>
+              </TableRow>
+            ))
+          ) : isError ? (
+            // If error, show error message
+            <TableRow>
+              <TableCell colSpan={6} align="center">
+                Error: {error.message}
+              </TableCell>
+            </TableRow>
+          ) : (
+            // Once data is loaded, render the rows
+            dailyMonitoring?.data?.data?.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell  align="center" scope="row">{row.id}</TableCell>
+                <TableCell component="th"  align="center" scope="row">{row.name}</TableCell>
+                <TableCell align="center">{row.mgdl}</TableCell>
+                <TableCell align="center">{row.description}</TableCell>
+                <TableCell align="center">
+                  <Box
+                    sx={{
+                      color: row.status === "high" || row.status === "low" ? "red" : "green",
+                      outline: `2px solid ${
+                        row.status === "high" || row.status === "low" ? "red" : "green"
+                      }`,
+                      borderRadius: "8px",
+                      padding: "4px 8px",
+                    }}
+                  >
+                    {row.status}
+                  </Box>
+                </TableCell>
+                <TableCell align="center">{row.date}</TableCell>
+                <TableCell align="center" sx={{ padding: '5px' }}>
+                <Box display="flex" gap={1}>
+                  {
+                  status === "active" ? (
+                    <>
+                      <Button variant="contained" color="success" onClick={() => { handleEdit(row) }}>
+                        EDIT
+                      </Button>
+                      <Button variant="contained" color="error" onClick={() => { handleDeleteClick(row) }}>
+                        Delete
+                      </Button>
+                    </>
+                  ) : (
+                    <Button variant="contained" color="success" onClick={() => { handleDeleteClick(row) }}>
+                      Restore
+                    </Button>
+                  )
+                }   
+                </Box>
+              </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+        {/* Pagination */}
+        <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={dailyMonitoring?.data?.data?.length || 0}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+      />
+    </TableContainer>
 
-      <Paper sx={{ height: 400, width: '100%' }}>
-        <DataGrid
-          rows={dailyMonitoring}
-          columns={columns}
-          pagination
-          page={page}
-          pageSize={rowsPerPage}
-          rowCount={totalCount}
-          paginationMode="server"
-          onPageChange={handleChangePage}
-          onPageSizeChange={handleChangeRowsPerPage}
-          sx={{ border: 0 }}
-        />
-      </Paper>
-
-      {/* Create Sugar Monitoring Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} fullWidth maxWidth="sm">
+    {/* Create Sugar Monitoring Dialog */}
+    <Dialog open={openDialog} onClose={() => setOpenDialog(false)} fullWidth maxWidth="sm">
         <DialogTitle> Daily Sugar input</DialogTitle>
-        <form onSubmit={handleSubmit(handleCreateDailyMonitoring)}>
+        <form onSubmit={handleSubmit(handleCreateDailySugar)}>
+        <Divider />
         <DialogContent>
           <Grid container spacing={2}>
             <Grid item xs={6}>
@@ -306,6 +373,7 @@ console.log("date",watch.date)
             helperText={errors.description?.message} 
           />
         </DialogContent>
+          <Divider />
           <DialogActions>
             <Button onClick={() => setOpenDialog(false)} color="error" variant="contained">Cancel</Button>
             <Button type="submit" color="success" variant="contained">Create</Button>
@@ -313,10 +381,11 @@ console.log("date",watch.date)
         </form>
       </Dialog>
 
-      {/* Update Daily Sugar Dialog */}
-      <Dialog open={openUpdateDialog} onClose={() => setOpenUpdateDialog(false)} fullWidth maxWidth="sm">
+       {/* Update Daily Sugar Dialog */}
+       <Dialog open={openUpdateDialog} onClose={() => setOpenUpdateDialog(false)} fullWidth maxWidth="sm">
         <DialogTitle>Update Daily Sugar</DialogTitle>
         <form onSubmit={handleSubmit(handleUpdateDailySugar)}>
+        <Divider />
           <DialogContent>
           <Grid container spacing={2}>
             <Grid item xs={6}>
@@ -355,6 +424,7 @@ console.log("date",watch.date)
             helperText={errors.description?.message} 
           />
           </DialogContent>
+          <Divider />
           <DialogActions>
             <Button onClick={() => setOpenUpdateDialog(false)} color="error" variant="contained">Cancel</Button>
             <Button type="submit" color="success" variant="contained">Update</Button>
@@ -365,22 +435,31 @@ console.log("date",watch.date)
       {/* Confirmation Dialog for Delete */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
+        <Divider />
         <DialogContent>
           <Typography>Are you sure you want to archive this record?</Typography>
         </DialogContent>
+        <Divider />
         <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} color="error" variant="contained">Cancel</Button>
+          <Button onClick={() => handleClose()} variant="contained" color="error">Cancel</Button>
           <Button onClick={handleDeleteDailySugar} color="success" variant="contained">Yes, Archive</Button>
         </DialogActions>
       </Dialog>
 
-       {/* Snackbar for notifications */}
-       <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+
+        {/* Snackbar */}
+        <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
     </>
+    
+      
   )
 }
 

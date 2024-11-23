@@ -4,8 +4,8 @@ import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Link from '@mui/material/Link';
 import Paper from '@mui/material/Paper';
 import { DataGrid } from '@mui/x-data-grid';
-import { Box, Button, IconButton, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Alert, InputLabel, Select, MenuItem, FormHelperText, FormControl, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Skeleton } from '@mui/material';
-import { Delete, Edit } from '@mui/icons-material';
+import { Box, Button, IconButton, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Alert, InputLabel, Select, MenuItem, FormHelperText, FormControl, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Skeleton, TablePagination, FormControlLabel, Checkbox, Divider } from '@mui/material';
+import { CheckBox, Delete, Edit } from '@mui/icons-material';
 import { userSchema } from "../validations/validation";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useForm } from 'react-hook-form';
@@ -14,13 +14,13 @@ import { useGetUserQuery, useAddUserMutation, useUpdateUserMutation, useArchived
 const Users = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("active");
   const [openDialog, setOpenDialog] = useState(false);
   const [openUpdateDialog, setOpenUpdateDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-
-  
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -32,7 +32,6 @@ const Users = () => {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
     reset,
     setError,
   } = useForm({
@@ -50,7 +49,7 @@ const Users = () => {
   });
 
   // Fetch users with RTK Query hook
-  const { data: users, isLoading, isError, error, refetch } = useGetUserQuery({ searchTerm, page, rowsPerPage });
+  const { data: users, isLoading, isError, error, refetch } = useGetUserQuery({ search, page: page + 1, per_page: rowsPerPage, status });
 
   const [addUser] = useAddUserMutation();
   const [updateUser] = useUpdateUserMutation();
@@ -112,38 +111,36 @@ const Users = () => {
       const response = await archiveUser({ id: selectedUser.id }).unwrap();
       console.log('User archived:', response);
       setOpenDeleteDialog(false);
+      refetch();
       setSnackbar({
         open: true,
         message: response?.message,
         severity: "success",
       });
-    } catch (error) {
-      console.error('Error archiving user:', error);
+    } catch (errors) {
+      console.error('Error archiving user:', errors?.data?.errors?.[0]?.detail);
       setSnackbar({
         open: true,
-        message: error?.message || 'An unexpected error occurred',
+        message: errors?.data?.errors?.[0]?.detail || 'An unexpected error occurred',
         severity: "error",
       });
     }
   };
 
-  const handleSearchChange = (event) => setSearchTerm(event.target.value);
-
-  const handleKeyDown = (event) => {
-    if (event.key === 'Enter') {
-    
-    }
-  };
-
   const handleCreate = () => {
-    console.log("handleCreate")
-    
-    setSelectedUser(null);
-    reset();
+    reset({
+      first_name: "",
+      middle_name: "",
+      last_name: "",
+      gender: "",
+      mobile_number: "",
+      email: "",
+      username: "",
+      userType: "",
+    });
     setOpenDialog(true);
-    
-  console.log(selectedUser)
   };
+  
 
 
   const handleEdit = (user) => {
@@ -159,9 +156,34 @@ const Users = () => {
 
   const handleClose = () => {
     setSelectedUser(null);
-    reset();
     setOpenUpdateDialog(false);
   };
+
+  
+  const handleSearchChange = (event) => {
+    setSearch(event.target.value);  // Update the search state when typing
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0); // Reset to first page when changing rows per page
+  };
+
+  const handleChangeStatus = (event) => {
+    // Update status based on checkbox state
+    if (event.target.checked) {
+      setStatus("inactive");
+      refetch()
+    } else {
+      setStatus("active");
+      refetch()
+    }
+  };
+
 
   return (
     <>
@@ -170,34 +192,45 @@ const Users = () => {
       </Typography>
       <Breadcrumbs aria-label="breadcrumb" sx={{ paddingBottom: 2 }}>
         <Link color="inherit" href="/">Home</Link>
-        <Link color="inherit" href="/users">Users</Link>
+        <Link color="inherit" href="/dashboard/users">Users</Link>
       </Breadcrumbs>
 
       <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ marginBottom: 2 }}>
       <Button variant="contained" color="success" onClick={() => handleCreate()}>
           Add User
-        </Button>
+      </Button>
+      </Box>
+      <TableContainer component={Paper}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ padding: 1.5 }}  // Adding padding here
+      >
+         <FormControlLabel
+            control={<Checkbox color="success" onChange={handleChangeStatus} />}
+            label="Archived"
+          />
         <TextField
           label="Search"
           variant="outlined"
-          // value={searchTerm}
-          // onChange={handleSearchChange}
-          // onKeyDown={handleKeyDown}
+          value={search}
+          onChange={handleSearchChange} 
           sx={{ width: 300 }}
         />
       </Box>
-      <TableContainer component={Paper}>
+
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
         <TableHead>
           <TableRow>
             <TableCell>First Name</TableCell>
-            <TableCell align="right">Middle Name</TableCell>
-            <TableCell align="right">Last Name</TableCell>
-            <TableCell align="right">Username</TableCell>
-            <TableCell align="right">Email</TableCell>
-            <TableCell align="right">Mobile Number</TableCell>
-            <TableCell align="right">User Type</TableCell>
-            <TableCell align="right">Action</TableCell>
+            <TableCell align="center">Middle Name</TableCell>
+            <TableCell align="center">Last Name</TableCell>
+            <TableCell align="center">Username</TableCell>
+            <TableCell align="center">Email</TableCell>
+            <TableCell align="center">Mobile Number</TableCell>
+            <TableCell align="center">User Type</TableCell>
+            <TableCell align="center">Action</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -205,28 +238,28 @@ const Users = () => {
           {isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell component="th" scope="row">
+                <TableCell  align="center" component="th" scope="row">
                   <Skeleton width="80%" />
                 </TableCell>
-                <TableCell align="right">
+                <TableCell align="center">
                   <Skeleton width="60%" />
                 </TableCell>
-                <TableCell align="right">
+                <TableCell align="center">
                   <Skeleton width="70%" />
                 </TableCell>
-                <TableCell align="right">
+                <TableCell align="center">
                   <Skeleton width="60%" />
                 </TableCell>
-                <TableCell align="right">
+                <TableCell align="center">
                   <Skeleton width="80%" />
                 </TableCell>
-                <TableCell align="right">
+                <TableCell align="center">
                   <Skeleton width="90%" />
                 </TableCell>
-                <TableCell align="right">
+                <TableCell align="center">
                   <Skeleton width="70%" />
                 </TableCell>
-                <TableCell align="right">
+                <TableCell align="center">
                   <Skeleton width="70%" />
                 </TableCell>
               </TableRow>
@@ -242,25 +275,55 @@ const Users = () => {
             // Once data is loaded, render the rows
             users?.data?.data?.map((row) => (
               <TableRow key={row.id}>
-                <TableCell component="th" scope="row">{row.first_name}</TableCell>
-                <TableCell align="right">{row.middle_name}</TableCell>
-                <TableCell align="right">{row.last_name}</TableCell>
-                <TableCell align="right">{row.username}</TableCell>
-                <TableCell align="right">{row.email}</TableCell>
-                <TableCell align="right">{row.mobileNumber}</TableCell>
-                <TableCell align="right">{row.userType}</TableCell>
-                <TableCell align="right"><Button variant="contained" color="success" onClick={()=> {handleEdit(row)}}>EDIT</Button> <Button variant="contained" color="error">Delete</Button></TableCell>
+                <TableCell component="th"  align="center" scope="row">{row.first_name}</TableCell>
+                <TableCell align="center">{row.middle_name}</TableCell>
+                <TableCell align="center">{row.last_name}</TableCell>
+                <TableCell align="center">{row.username}</TableCell>
+                <TableCell align="center">{row.email}</TableCell>
+                <TableCell align="center">{row.mobile_number}</TableCell>
+                <TableCell align="center">{row.userType}</TableCell>
+                <TableCell align="center" sx={{ padding: '5px' }}>
+                <Box display="flex" gap={1}>
+                  {
+                  status === "active" ? (
+                    <>
+                      <Button variant="contained" color="success" onClick={() => { handleEdit(row) }}>
+                        EDIT
+                      </Button>
+                      <Button variant="contained" color="error" onClick={() => { handleDeleteClick(row) }}>
+                        Delete
+                      </Button>
+                    </>
+                  ) : (
+                    <Button variant="contained" color="success" onClick={() => { handleDeleteClick(row) }}>
+                      Restore
+                    </Button>
+                  )
+                }   
+                </Box>
+              </TableCell>
               </TableRow>
             ))
           )}
         </TableBody>
       </Table>
+        {/* Pagination */}
+        <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={users?.data?.data?.length || 0}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+      />
     </TableContainer>
 
       {/* Create User Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} fullWidth maxWidth="sm">
         <DialogTitle>Create User</DialogTitle>
         <form onSubmit={handleSubmit(handleCreateUser)}>
+        <Divider />
           <DialogContent>
             <TextField {...register('first_name')} label="First Name" fullWidth margin="dense" error={!!errors.first_name} helperText={errors.first_name?.message} />
             <TextField {...register('middle_name')} label="Middle Name" fullWidth margin="dense" error={!!errors.middle_name} helperText={errors.middle_name?.message} />
@@ -296,19 +359,20 @@ const Users = () => {
             </Select>
             {errors.userType && <FormHelperText error>{errors.userType?.message}</FormHelperText>}
           </FormControl>
-
           </DialogContent>
+          <Divider />
           <DialogActions>
-            <Button onClick={() => setOpenDialog(false)} color="error">Cancel</Button>
+            <Button onClick={() => setOpenDialog(false)} color="error" variant='contained'>Cancel</Button>
             <Button type="submit" variant="contained" color="success">Create</Button>
           </DialogActions>
         </form>
       </Dialog>
 
       {/* Update User Dialog */}
-      <Dialog open={openUpdateDialog} onClose={() => setOpenUpdateDialog(false)} fullWidth maxWidth="sm">
+      <Dialog open={openUpdateDialog} onClose={() => { setOpenUpdateDialog(false); reset(); }} fullWidth maxWidth="sm">
         <DialogTitle>Update User</DialogTitle>
         <form onSubmit={handleSubmit(handleUpdateUser)}>
+        <Divider />
           <DialogContent>
             <TextField {...register('first_name')} label="First Name" fullWidth margin="dense" error={!!errors.first_name} helperText={errors.first_name?.message} />
             <TextField {...register('middle_name')} label="Middle Name" fullWidth margin="dense" error={!!errors.middle_name} helperText={errors.middle_name?.message} />
@@ -347,6 +411,7 @@ const Users = () => {
               {errors.userType && <FormHelperText error>{errors.userType?.message}</FormHelperText>}
             </FormControl>
           </DialogContent>
+           <Divider />
           <DialogActions>
             <Button onClick={() => handleClose()} variant="contained" color="error">Cancel</Button>
             <Button type="submit" variant="contained" color="success">Update</Button>
@@ -354,12 +419,26 @@ const Users = () => {
         </form>
       </Dialog>
 
-      {/* Delete/Archive User Dialog */}
+
+      {/* Confirmation Dialog for Delete */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle>Confirm Archive</DialogTitle>
+        {status === "active" ? (
+          <DialogTitle>Confirm Delete</DialogTitle>
+        ) : (
+          <DialogTitle>Confirm Restore</DialogTitle>
+        )}
+        <Divider />
+        <DialogContent>
+        {status === "active" ? (
+          <Typography>Are you sure you want to archive this user?</Typography>
+        ) : (
+          <Typography>Are you sure you want to restore this user?</Typography>
+        )}
+        </DialogContent>
+        <Divider />
         <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} color="error">Cancel</Button>
-          <Button onClick={handleDeleteUser} variant="contained" color="error">Archive</Button>
+          <Button onClick={() => setOpenDeleteDialog(false)} color="error" variant="contained">Cancel</Button>
+          <Button onClick={handleDeleteUser} color="success" variant="contained">Yes</Button>
         </DialogActions>
       </Dialog>
 

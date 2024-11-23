@@ -23,7 +23,7 @@ export const userSchema = yup.object().shape({
     userType: yup.string().oneOf(['admin', 'user'], 'User Type is required'),
 });
 
-export const sugarMonitoring = yup.object().shape({
+export const dailySugarMonitoring = yup.object().shape({
   mgdl: yup.number().integer().required('mgdl is required'), // Corrected to yup.number().integer()
   description: yup.string().nullable(), // Optional
   date: yup
@@ -33,4 +33,4 @@ export const sugarMonitoring = yup.object().shape({
 });
 
 
-export default { loginSchema, userSchema, sugarMonitoring };
+export default { loginSchema, userSchema, dailySugarMonitoring };
